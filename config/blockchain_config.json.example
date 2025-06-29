@@ -1,0 +1,31 @@
+{
+  "ipfs": {
+    "api_url": "/ip4/127.0.0.1/tcp/5001",
+    "timeout": 30,
+    "max_file_size": "100MB"
+  },
+  "ethereum": {
+    "rpc_url": "http://localhost:8545",
+    "contract_address": "0x...",
+    "private_key": "0x...",
+    "gas_limit": 3000000,
+    "gas_price": 20000000000,
+    "chain_id": 1
+  },
+  "monitoring": {
+    "data_dir": "/app/data/analysis",
+    "check_interval": 60,
+    "max_retries": 3,
+    "retry_delay": 5
+  },
+  "storage": {
+    "base_dir": "/app/data",
+    "logs_dir": "/app/data/logs",
+    "temp_dir": "/app/data/temp"
+  },
+  "logging": {
+    "level": "INFO",
+    "max_file_size": "10MB",
+    "backup_count": 5
+  }
+} 

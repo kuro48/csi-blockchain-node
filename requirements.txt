@@ -1,0 +1,4 @@
+web3==4.9.0
+ipfshttpclient==0.4.13
+schedule==1.1.0
+requests==2.25.1 
