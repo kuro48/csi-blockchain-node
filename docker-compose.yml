@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # IPFS ノード
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: csi-ipfs
+    ports:
+      - "4001:4001"  # P2P
+      - "5001:5001"  # API
+      - "8080:8080"  # Gateway
+    volumes:
+      - ipfs_data:/data/ipfs
+    environment:
+      - IPFS_PROFILE=server
+    command: daemon --migrate=true --agent-version-suffix=docker
+    networks:
+      - csi-network
+
+  # 分析サーバー
+  analysis-server:
+    build: ../csi-analysis-server
+    container_name: csi-analysis-server
+    ports:
+      - "8000:8000"
+    volumes:
+      - analysis_data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - IPFS_HOST=ipfs
+      - IPFS_PORT=5001
+      - API_KEY=your-secret-api-key
+    depends_on:
+      - ipfs
+    networks:
+      - csi-network
+
+  # ブロックチェーンノード
+  blockchain-node:
+    build: .
+    container_name: csi-blockchain-node
+    volumes:
+      - blockchain_data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - IPFS_HOST=ipfs
+      - IPFS_PORT=5001
+      - ANALYSIS_SERVER_URL=http://analysis-server:8000
+      - API_KEY=your-secret-api-key
+    depends_on:
+      - ipfs
+      - analysis-server
+    networks:
+      - csi-network
+    restart: unless-stopped
+
+volumes:
+  ipfs_data:
+  analysis_data:
+  blockchain_data:
+
+networks:
+  csi-network:
+    driver: bridge 

@@ -212,36 +212,14 @@ class BlockchainNodeManager:
         except Exception as e:
             self.logger.error(f"接続テストに失敗: {e}")
             return False
-            
-    async def run_analysis_server_monitor(self):
-        """分析サーバーの監視を実行"""
-        try:
-            self.logger.info("分析サーバー監視モードを開始します")
-            await self.blockchain_manager.monitor_analysis_server()
-        except Exception as e:
-            self.logger.error(f"分析サーバー監視中にエラーが発生: {e}")
-            
-    async def process_analysis_results(self, device_id: str = None, limit: int = 10):
-        """分析結果の一括処理"""
-        try:
-            self.logger.info("分析結果の一括処理を開始します")
-            results = await self.blockchain_manager.fetch_and_process_analysis_results()
-            self.logger.info(f"一括処理が完了しました: {len(results)} 件")
-            return results
-        except Exception as e:
-            self.logger.error(f"一括処理中にエラーが発生: {e}")
-            return []
 
 def main():
     parser = argparse.ArgumentParser(description="ブロックチェーンノードメインスクリプト")
     parser.add_argument("--config", type=str, default="config/blockchain_config.json",
                       help="設定ファイルのパス")
-    parser.add_argument("--mode", type=str, 
-                      choices=["monitor", "process", "test", "analysis-monitor", "analysis-process"],
+    parser.add_argument("--mode", type=str, choices=["monitor", "process", "test"],
                       default="monitor", help="実行モード")
     parser.add_argument("--file", type=str, help="処理対象のファイル（processモード用）")
-    parser.add_argument("--device-id", type=str, help="デバイスID（analysis-processモード用）")
-    parser.add_argument("--limit", type=int, default=10, help="処理件数制限")
     
     args = parser.parse_args()
     
@@ -265,13 +243,6 @@ def main():
     elif args.mode == "test":
         status = manager.get_blockchain_status()
         print(json.dumps(status, indent=2))
-    elif args.mode == "analysis-monitor":
-        # 非同期実行
-        asyncio.run(manager.run_analysis_server_monitor())
-    elif args.mode == "analysis-process":
-        # 非同期実行
-        results = asyncio.run(manager.process_analysis_results(args.device_id, args.limit))
-        print(json.dumps(results, indent=2))
 
 if __name__ == "__main__":
     main() 

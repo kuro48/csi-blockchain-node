@@ -7,6 +7,7 @@ import ipfshttpclient
 from web3 import Web3
 from web3.exceptions import ContractLogicError, ValidationError
 import asyncio
+from .http_client import AnalysisServerClient
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class BlockchainManager:
     def _setup_ipfs(self):
         """IPFSクライアントの設定"""
         try:
-            ipfs_api_url = self.config.get('ipfs', {}).get('api_url', '/ip4/127.0.0.1/tcp/5001')
+            ipfs_api_url = self.config.get('ipfs', {}).get('api_url', '/ip4/ipfs/tcp/5001')
             self.ipfs_client = ipfshttpclient.connect(ipfs_api_url)
             logger.info(f"IPFSクライアントを初期化しました: {ipfs_api_url}")
         except Exception as e:
@@ -317,4 +318,77 @@ class BlockchainManager:
             
         except Exception as e:
             logger.error(f"全呼吸データの取得に失敗: {e}")
-            return [] 
+            return []
+            
+    async def fetch_and_process_analysis_results(self) -> List[Dict[str, Any]]:
+        """
+        分析サーバーから結果を取得してブロックチェーンに保存
+        
+        Returns:
+            処理された結果のリスト
+        """
+        try:
+            async with AnalysisServerClient(self.config) as client:
+                # 分析サーバーのヘルスチェック
+                if not await client.health_check():
+                    logger.error("分析サーバーが利用できません")
+                    return []
+                    
+                # 全デバイスの最新結果を取得
+                all_results = await client.get_all_devices_results(
+                    limit_per_device=self.config['analysis_server']['batch_size']
+                )
+                
+                processed_results = []
+                
+                for device_id, results in all_results.items():
+                    for result in results:
+                        try:
+                            # 分析結果をブロックチェーンに保存
+                            blockchain_result = self.process_breathing_analysis(result)
+                            processed_results.append({
+                                'device_id': device_id,
+                                'analysis_result': result,
+                                'blockchain_result': blockchain_result
+                            })
+                            logger.info(f"分析結果をブロックチェーンに保存しました: {device_id}")
+                            
+                        except Exception as e:
+                            logger.error(f"分析結果の処理に失敗 {device_id}: {e}")
+                            continue
+                            
+                logger.info(f"分析結果の処理が完了しました: {len(processed_results)} 件")
+                return processed_results
+                
+        except Exception as e:
+            logger.error(f"分析結果の取得・処理中にエラーが発生: {e}")
+            return []
+            
+    async def monitor_analysis_server(self):
+        """
+        分析サーバーの監視と自動処理
+        """
+        try:
+            logger.info("分析サーバーの監視を開始しました")
+            
+            while True:
+                try:
+                    # 分析結果の取得と処理
+                    processed_results = await self.fetch_and_process_analysis_results()
+                    
+                    if processed_results:
+                        logger.info(f"監視サイクルで {len(processed_results)} 件の結果を処理しました")
+                    else:
+                        logger.info("監視サイクル: 新しい分析結果はありませんでした")
+                        
+                    # 設定された間隔で待機
+                    await asyncio.sleep(self.config['analysis_server']['polling_interval'])
+                    
+                except Exception as e:
+                    logger.error(f"監視サイクル中にエラーが発生: {e}")
+                    await asyncio.sleep(30)  # エラー時は短い間隔で再試行
+                    
+        except KeyboardInterrupt:
+            logger.info("分析サーバーの監視を停止しました")
+        except Exception as e:
+            logger.error(f"分析サーバー監視中にエラーが発生: {e}") 

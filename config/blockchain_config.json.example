@@ -1,6 +1,6 @@
 {
   "ipfs": {
-    "api_url": "/ip4/127.0.0.1/tcp/5001",
+    "api_url": "/ip4/ipfs/tcp/5001",
     "timeout": 30,
     "max_file_size": "100MB"
   },
@@ -12,6 +12,17 @@
     "gas_price": 20000000000,
     "chain_id": 1
   },
+  "analysis_server": {
+    "base_url": "http://analysis-server:8000",
+    "api_key": "your-api-key-here",
+    "endpoints": {
+      "results": "/breathing-analysis/results",
+      "latest": "/breathing-analysis/results/{device_id}/latest",
+      "health": "/breathing-analysis/health"
+    },
+    "polling_interval": 60,
+    "batch_size": 10
+  },
   "monitoring": {
     "data_dir": "/app/data/analysis",
     "check_interval": 60,
@@ -20,6 +31,7 @@
   },
   "storage": {
     "base_dir": "/app/data",
+    "data_dir": "/app/data/analysis",
     "logs_dir": "/app/data/logs",
     "temp_dir": "/app/data/temp"
   },
